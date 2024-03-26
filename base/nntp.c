@@ -75,7 +75,7 @@ void nntp_logoff(newspost_threadinfo *tinfo) {
 	nntp_get_response(tinfo, tmpbuffer);
 }
 
-int nntp_post(newspost_threadinfo *tinfo, const char *subject, newspost_data *data,
+int _nntp_post(newspost_threadinfo *tinfo, const char *subject, newspost_data *data, 
 	      const char *buffer, long length,
 	      boolean no_ui_updates) {
 	char response[STRING_BUFSIZE];
@@ -96,7 +96,7 @@ int nntp_post(newspost_threadinfo *tinfo, const char *subject, newspost_data *da
 	if (strncmp(response, NNTP_PROCEED_WITH_POST, 3) != 0) {
 		/* this shouldn't really happen */
 		ui_nntp_unknown_response(tinfo, response);
-		return POSTING_FAILED;
+		return POSTING_FAILED-64;
 	}
 	
 	buff = buff_add(buff, "From: %s\r\n", data->from->data);
@@ -171,6 +171,35 @@ int nntp_post(newspost_threadinfo *tinfo, const char *subject, newspost_data *da
 	}
 	buff_free(buff);
 	return NORMAL;
+}
+
+int nntp_post(newspost_threadinfo *tinfo, const char *subject, newspost_data *data,
+	      const char *buffer, long length,
+	      boolean no_ui_updates) {
+	int retval = _nntp_post(tinfo, subject, data, buffer, length, no_ui_updates);
+
+	if (retval == POSTING_FAILED-64) {
+		/* try log out then back in */
+		ui_nntp_posting_retry(tinfo);
+		nntp_logoff(tinfo);
+		socket_close(tinfo->sockfd);
+		sleep(5);
+
+		/* create the socket */
+		ui_socket_connect_start(tinfo, data->address->data);
+		retval = socket_create(data->address->data, data->port);
+		if (retval < 0)
+			return retval;
+		ui_socket_connect_done(tinfo);
+
+		ui_nntp_logon_start(tinfo, data->address->data);
+		if (nntp_logon(tinfo, data) == FALSE)
+			return POSTING_FAILED;
+		ui_nntp_logon_done(tinfo);
+
+		retval = _nntp_post(tinfo, subject, data, buffer, length, no_ui_updates);
+		}
+	return retval;
 }
 
 /* returns number of bytes written */
