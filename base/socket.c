@@ -124,7 +124,7 @@ long socket_getline(int sockfd, char *buffer) {
 
 	i = 0;
 	pi = buffer;
-	while (TRUE) {
+	while (read_count < STRING_BUFSIZE - 1) {
 		retval = read(sockfd, pi, 1);
 		if(retval < 0)
 			ui_socket_error(errno);
