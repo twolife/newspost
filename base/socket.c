@@ -33,66 +33,65 @@
 **/
 
 int socket_create(const char *address, int port) {
-	struct sigaction act, oact; /* used to prevent a crash in
-				       case of a dead socket */
-	/* use these to make the socket to the host */
-	struct sockaddr_in serv_addr;
-	struct in_addr inaddr;
 	int on;
-	struct hostent *hp;
+	int error;
+	char service[5];	/* Port shouldn't be > 65535 (5 chars) */
 
-#if (defined(sun) || defined(__sun)) && (defined(__svr4) || \
-defined(__SVR4) || defined(__svr4__))
-	unsigned long tinaddr;
-#endif
 	int sockfd = -1;
 
-	memset ( &serv_addr, 0, sizeof(serv_addr) );
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
+	struct addrinfo		*res, *aip;
+	struct addrinfo		hints;
 
-	/* Try to convert host name as dotted decimal */
-#if (defined(sun) || defined(__sun)) && (defined(__svr4) || \
-defined(__SVR4) || defined(__svr4__))
-	tinaddr = inet_addr(address);
-	if ( tinaddr != -1 )
-#else
-	if ( inet_aton(address, &inaddr) != 0 ) 
-#endif
-	{
-		memcpy(&serv_addr.sin_addr, &inaddr, sizeof(inaddr));
-	}
-	else	/* If that failed, then look up the host name */
-	{
-		if (NULL == (hp = gethostbyname(address)))
-			return FAILED_TO_RESOLVE_HOST;
-		memcpy(&serv_addr.sin_addr, hp->h_addr, hp->h_length);
-	}
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0)
-		return FAILED_TO_CREATE_SOCKET;
+	/* Get host address. */
+	bzero(&hints, sizeof(hints));
+	hints.ai_flags = AI_ALL | AI_ADDRCONFIG;
+	hints.ai_socktype = SOCK_STREAM;
 
-	if (connect(sockfd, (struct sockaddr*) &serv_addr,
-	    sizeof(serv_addr)) < 0) {
-		close (sockfd);
-		return FAILED_TO_CREATE_SOCKET;
+	/* Convert port to a type acceptable to getaddrinfo() */
+	sprintf(service, "%d", port);
+
+	error = getaddrinfo(address, service, &hints, &res);
+
+	if (error != 0) {
+		return FAILED_TO_RESOLVE_HOST;
+	}
+
+	/* Try all returned addresses until one works */
+	for (aip = res; aip != NULL; aip = aip->ai_next) {
+
+		/* Open socket.  Address type depends on what
+		 * we got from getaddrinfo().
+		 */
+		 
+		 sockfd = socket(aip->ai_family, aip->ai_socktype,
+		 		 aip->ai_protocol);
+
+		 if (sockfd == -1) {
+		 	freeaddrinfo(res);
+		 	return (FAILED_TO_CREATE_SOCKET);
+		 }
+		 
+		/* Connect to host. */
+		if (connect(sockfd, aip->ai_addr, aip->ai_addrlen) == -1) {
+			(void) close(sockfd);
+			sockfd = FAILED_TO_CREATE_SOCKET;
+			continue;
+		}
+		break;
 	}
 
 	on = 1;
 	if (setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE,
-	    (char*) &on, sizeof(on)) < 0) {
-		close(sockfd);
-		return FAILED_TO_CREATE_SOCKET;
+		(char*) &on, sizeof(on)) < 0) {
+			close(sockfd);
+			sockfd = FAILED_TO_CREATE_SOCKET;
 	}
 
-	/* If we write() to a dead socket, then let write return
-	 * EPIPE rather than crashing the program. */
+	freeaddrinfo(res);
 
-	act.sa_handler = SIG_IGN;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-	sigaction(SIGPIPE, &act, &oact);
-
+	if (sockfd < 0)
+		return FAILED_TO_CREATE_SOCKET;
+		
         return sockfd;
 }
 
