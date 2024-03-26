@@ -41,8 +41,6 @@ pedantic:
 
 opt:
 	$(MAKE) main CFLAGS="$(OPT_FLAGS)" LIBS="$(OPT_LIBS)"
-	-strip newspost
-
 
 solaris-dev:
 	$(MAKE) main CFLAGS="$(DEV_FLAGS)" LIBS="$(SOLARIS_LIBS)"
@@ -52,10 +50,11 @@ solaris-pedantic:
 
 solaris-opt:
 	$(MAKE) main CFLAGS="$(OPT_FLAGS)" LIBS="$(SOLARIS_LIBS)"
-	-strip newspost
 
 qnx:
 	$(MAKE) main CFLAGS="$(OPT_FLAGS)" LIBS="$(QNX_LIBS)"
+
+strip:
 	-strip newspost
 
 install:
