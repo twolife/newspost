@@ -4,7 +4,7 @@ OPT_LIBS = -lpthread
 
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
-MANDIR = $(PREFIX)/man/man1
+MANDIR = $(PREFIX)/share/man/man1
 
 SOLARIS_LIBS = -lsocket -lnsl
 QNX_LIBS = -lsocket
