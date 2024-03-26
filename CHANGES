@@ -2,6 +2,10 @@ Newspost
 
 List of Changes
 
+2.2.2
+ - IPv6 support
+ - fix buffer overflow in the socket_getline function (CAN-2005-0101)
+
 2.2.1
  - Added the ability to use threads for binary posting. Use -N <int> to
 specifiy the number of threads to use.

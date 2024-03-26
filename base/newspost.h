@@ -33,10 +33,10 @@
 #include "utils.h"
 
 /* remember to change VERSION and PAR_CLIENT for new version numbers */
-#define VERSION "2.2.1"
-#define PAR_CLIENT 0xFE020101
+#define VERSION "2.2.2"
+#define PAR_CLIENT 0xFE020202
 
-#define NEWSPOSTURL "http://github.com/PietjeBell88/newspost"
+#define NEWSPOSTURL "https://github.com/twolife/newspost"
 #define NEWSPOSTNAME "Newspost"
 #define USER_AGENT NEWSPOSTNAME "/" VERSION " (" NEWSPOSTURL ")"
 
