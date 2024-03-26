@@ -51,7 +51,7 @@ file_entry * file_entry_free(file_entry *fe){
 }
 
 Buff * buff_getline(Buff *buff, FILE *file){
-	char c = fgetc(file);
+	int c = fgetc(file);
 	buff = buff_free(buff);
 	while(TRUE){
 		if((c == '\n')
